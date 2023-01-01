@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   StyleSheet,
   Text,
@@ -6,9 +6,10 @@ import {
   Image,
   TouchableOpacity,
   StatusBar,
+  ToastAndroid
 } from 'react-native';
-import { Camera } from 'react-native-pytorch-core';
-import classifyImage from '../assets/classifier-model/ImageClassifier';
+import {Camera} from 'react-native-pytorch-core';
+import classifyImage from '../component/logic/ImageClassifier';
 import captureIcon from '../assets/img/camera_ic.png';
 import speakIcon from '../assets/img/speak_ic.png';
 import undoIcon from '../assets/img/undo_ic.png';
@@ -18,37 +19,71 @@ import {useNavigation} from '@react-navigation/native';
 
 // import { Camera } from 'react-native-pytorch-core';
 
+const Toast = ({ visible, message }) => {
+  if (visible) {
+    ToastAndroid.showWithGravityAndOffset(
+      message,
+      ToastAndroid.SHORT,
+      ToastAndroid.TOP,
+      25,
+      50
+    );
+    return null;
+  }
+  return null;
+};
+
 export default function CameraPage() {
   const navigation = useNavigation();
+  const [words, setWords] = useState('');
+  const [visibleToast, setVisibleToast] = useState(false);
+
+  useEffect(() => setVisibleToast(false), [visibleToast]);
+
+  
+  async function handleImage(image) {
+    const result = await classifyImage(image);
+
+    if(result!="Random"){
+      setWords(words + result);
+    }else{
+      setVisibleToast(true);
+    }
+    console.log(result)
+
+    //release image from memory
+    image.release();
+  }
+
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-      style={{zIndex: 10}}         
-      onPress={() => {
+      <Toast visible={visibleToast} message="Sign not recognized." />
+      {/* <TouchableOpacity
+        style={{zIndex: 10}}
+        onPress={() => {
           navigation.navigate('AboutPage');
         }}>
-      <Image
-        style={styles.info}
-        source={infoIcon}
-      />
-      </TouchableOpacity>
-      <Camera style={styles.camera} />
-      <View style={styles.textContainer}>
-        <Text style={styles.text}>Nice to meet you...</Text>
+        <Image style={styles.info} source={infoIcon} />
+      </TouchableOpacity> */}
+            <View style={styles.textContainer}>
+        <Text style={styles.text}>{words}</Text>
       </View>
+      <Camera style={styles.camera} onCapture={handleImage} />
+
       <View style={styles.actions}>
         <View style={styles.action}>
           <Image source={speakIcon} />
-          <Text>Speak</Text>
+          <Text style={styles.textWhite}>Speak</Text>
         </View>
-        <View style={styles.action}>
-          <Image source={captureIcon} />
-          <Text>Capture</Text>
-        </View>
+
+        <TouchableOpacity onPress={()=>{
+          setWords(words.slice(0,-1))
+        }}>
         <View style={styles.action}>
           <Image source={undoIcon} />
-          <Text>Undo</Text>
+          <Text style={styles.textWhite}>Undo</Text>
         </View>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -60,24 +95,37 @@ const styles = StyleSheet.create({
   },
   camera: {
     backgroundColor: '#000000',
-    height: '60%',
+    height: '80%',
   },
   textContainer: {
     padding: 20,
+    height:'20%',
+    backgroundColor:'#fff',
+    width:'100%',
   },
   text: {
     fontSize: 17,
     color: '#050505',
   },
+  textWhite: {
+    fontSize: 17,
+    color: '#fff',
+  },
   actions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    position: 'absolute',
+    start: 0,
+    bottom:0,
+    marginStart: 20,
+    marginEnd:20,
     marginTop: 'auto',
     marginBottom: 20,
+    flexDirection: 'column'
   },
   action: {
+    marginTop:20,
     alignItems: 'center',
     justifyContent: 'center',
+    color:'#fff'
   },
   info: {
     position: 'absolute',
