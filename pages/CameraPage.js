@@ -9,11 +9,15 @@ import {
   ToastAndroid
 } from 'react-native';
 import {Camera} from 'react-native-pytorch-core';
+import Tts from 'react-native-tts';
+
 import classifyImage from '../component/logic/ImageClassifier';
 import captureIcon from '../assets/img/camera_ic.png';
 import speakIcon from '../assets/img/speak_ic.png';
 import undoIcon from '../assets/img/undo_ic.png';
 import infoIcon from '../assets/img/info_ic.png';
+
+
 
 import {useNavigation} from '@react-navigation/native';
 
@@ -43,16 +47,36 @@ export default function CameraPage() {
   
   async function handleImage(image) {
     const result = await classifyImage(image);
-
+    let t2speak;
     if(result!="Random"){
       setWords(words + result);
+      t2speak = result
     }else{
       setVisibleToast(true);
+      t2speak = "Sign not recognized";
     }
     console.log(result)
 
     //release image from memory
     image.release();
+
+    Tts.speak(t2speak, {
+      androidParams: {
+        KEY_PARAM_PAN: -1,
+        KEY_PARAM_VOLUME: 0.5,
+        KEY_PARAM_STREAM: 'STREAM_MUSIC',
+      },
+    });
+  }
+
+  function speakTheWord(){
+    Tts.speak(words, {
+      androidParams: {
+        KEY_PARAM_PAN: -1,
+        KEY_PARAM_VOLUME: 0.5,
+        KEY_PARAM_STREAM: 'STREAM_MUSIC',
+      },
+    });
   }
 
   return (
@@ -71,10 +95,12 @@ export default function CameraPage() {
       <Camera style={styles.camera} onCapture={handleImage} />
 
       <View style={styles.actions}>
+        <TouchableOpacity onPress={speakTheWord}>
         <View style={styles.action}>
           <Image source={speakIcon} />
           <Text style={styles.textWhite}>Speak</Text>
         </View>
+        </TouchableOpacity>
 
         <TouchableOpacity onPress={()=>{
           setWords(words.slice(0,-1))
